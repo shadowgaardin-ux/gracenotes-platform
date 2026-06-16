@@ -9,38 +9,172 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedVaultRouteImport } from './routes/_authenticated/vault'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedSermonsRouteImport } from './routes/_authenticated/sermons'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedSermonsIndexRouteImport } from './routes/_authenticated/sermons.index'
+import { Route as AuthenticatedSermonsNewRouteImport } from './routes/_authenticated/sermons.new'
+import { Route as AuthenticatedSermonsIdRouteImport } from './routes/_authenticated/sermons.$id'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedVaultRoute = AuthenticatedVaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSermonsRoute = AuthenticatedSermonsRouteImport.update({
+  id: '/sermons',
+  path: '/sermons',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSermonsIndexRoute =
+  AuthenticatedSermonsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedSermonsRoute,
+  } as any)
+const AuthenticatedSermonsNewRoute = AuthenticatedSermonsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthenticatedSermonsRoute,
+} as any)
+const AuthenticatedSermonsIdRoute = AuthenticatedSermonsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedSermonsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/sermons': typeof AuthenticatedSermonsRouteWithChildren
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/vault': typeof AuthenticatedVaultRoute
+  '/sermons/$id': typeof AuthenticatedSermonsIdRoute
+  '/sermons/new': typeof AuthenticatedSermonsNewRoute
+  '/sermons/': typeof AuthenticatedSermonsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/vault': typeof AuthenticatedVaultRoute
+  '/sermons/$id': typeof AuthenticatedSermonsIdRoute
+  '/sermons/new': typeof AuthenticatedSermonsNewRoute
+  '/sermons': typeof AuthenticatedSermonsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/sermons': typeof AuthenticatedSermonsRouteWithChildren
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/vault': typeof AuthenticatedVaultRoute
+  '/_authenticated/sermons/$id': typeof AuthenticatedSermonsIdRoute
+  '/_authenticated/sermons/new': typeof AuthenticatedSermonsNewRoute
+  '/_authenticated/sermons/': typeof AuthenticatedSermonsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/onboarding'
+    | '/sermons'
+    | '/settings'
+    | '/vault'
+    | '/sermons/$id'
+    | '/sermons/new'
+    | '/sermons/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/onboarding'
+    | '/settings'
+    | '/vault'
+    | '/sermons/$id'
+    | '/sermons/new'
+    | '/sermons'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/onboarding'
+    | '/_authenticated/sermons'
+    | '/_authenticated/settings'
+    | '/_authenticated/vault'
+    | '/_authenticated/sermons/$id'
+    | '/_authenticated/sermons/new'
+    | '/_authenticated/sermons/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +182,104 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/vault': {
+      id: '/_authenticated/vault'
+      path: '/vault'
+      fullPath: '/vault'
+      preLoaderRoute: typeof AuthenticatedVaultRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sermons': {
+      id: '/_authenticated/sermons'
+      path: '/sermons'
+      fullPath: '/sermons'
+      preLoaderRoute: typeof AuthenticatedSermonsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sermons/': {
+      id: '/_authenticated/sermons/'
+      path: '/'
+      fullPath: '/sermons/'
+      preLoaderRoute: typeof AuthenticatedSermonsIndexRouteImport
+      parentRoute: typeof AuthenticatedSermonsRoute
+    }
+    '/_authenticated/sermons/new': {
+      id: '/_authenticated/sermons/new'
+      path: '/new'
+      fullPath: '/sermons/new'
+      preLoaderRoute: typeof AuthenticatedSermonsNewRouteImport
+      parentRoute: typeof AuthenticatedSermonsRoute
+    }
+    '/_authenticated/sermons/$id': {
+      id: '/_authenticated/sermons/$id'
+      path: '/$id'
+      fullPath: '/sermons/$id'
+      preLoaderRoute: typeof AuthenticatedSermonsIdRouteImport
+      parentRoute: typeof AuthenticatedSermonsRoute
+    }
   }
 }
 
+interface AuthenticatedSermonsRouteChildren {
+  AuthenticatedSermonsIdRoute: typeof AuthenticatedSermonsIdRoute
+  AuthenticatedSermonsNewRoute: typeof AuthenticatedSermonsNewRoute
+  AuthenticatedSermonsIndexRoute: typeof AuthenticatedSermonsIndexRoute
+}
+
+const AuthenticatedSermonsRouteChildren: AuthenticatedSermonsRouteChildren = {
+  AuthenticatedSermonsIdRoute: AuthenticatedSermonsIdRoute,
+  AuthenticatedSermonsNewRoute: AuthenticatedSermonsNewRoute,
+  AuthenticatedSermonsIndexRoute: AuthenticatedSermonsIndexRoute,
+}
+
+const AuthenticatedSermonsRouteWithChildren =
+  AuthenticatedSermonsRoute._addFileChildren(AuthenticatedSermonsRouteChildren)
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedSermonsRoute: typeof AuthenticatedSermonsRouteWithChildren
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedVaultRoute: typeof AuthenticatedVaultRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedSermonsRoute: AuthenticatedSermonsRouteWithChildren,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedVaultRoute: AuthenticatedVaultRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
