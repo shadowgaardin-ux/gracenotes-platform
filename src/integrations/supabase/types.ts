@@ -203,40 +203,49 @@ export type Database = {
       }
       sermons: {
         Row: {
+          audio_url: string | null
           author_id: string
           created_at: string
           delivered_at: string | null
           id: string
           organization_id: string
           scripture_focus: string | null
+          source_kind: string
           summary: string | null
           title: string
           transcript: string | null
           updated_at: string
+          visibility: string
         }
         Insert: {
+          audio_url?: string | null
           author_id: string
           created_at?: string
           delivered_at?: string | null
           id?: string
           organization_id: string
           scripture_focus?: string | null
+          source_kind?: string
           summary?: string | null
           title: string
           transcript?: string | null
           updated_at?: string
+          visibility?: string
         }
         Update: {
+          audio_url?: string | null
           author_id?: string
           created_at?: string
           delivered_at?: string | null
           id?: string
           organization_id?: string
           scripture_focus?: string | null
+          source_kind?: string
           summary?: string | null
           title?: string
           transcript?: string | null
           updated_at?: string
+          visibility?: string
         }
         Relationships: [
           {
