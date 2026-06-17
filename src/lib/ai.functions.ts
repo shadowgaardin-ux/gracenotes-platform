@@ -39,33 +39,34 @@ export const generateSermonContent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => ContentInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const { supabase } = context;
 
-    // Verify sermon belongs to user's org (RLS will also enforce on insert)
     const { data: sermon, error: sErr } = await supabase
       .from("sermons")
-      .select("id, organization_id")
+      .select("id, organization_id, author_id")
       .eq("id", data.sermonId)
       .maybeSingle();
     if (sErr || !sermon) throw new Error("Sermon not found");
 
-    const prompt = `You are a content multiplier for a church. From this sermon transcript titled "${data.title}", produce JSON with these exact keys:
+    const prompt = `You are a study companion analyzing a sermon titled "${data.title}". Produce JSON with EXACTLY these keys — every list item must be a single tight bullet (one sentence, no markdown bullets/dashes):
+
 {
   "summary": "2-3 sentence pastoral summary",
-  "social_x": "a single tweet under 280 chars, reverent, includes a hook",
+  "core_theology": ["3-6 bullets naming the central theological claims"],
+  "action_steps": ["3-6 bullets of concrete, do-this-week applications"],
+  "visual_metaphors": ["2-5 bullets of memorable images, illustrations, or stories the speaker used"],
+  "scripture_refs": ["every scripture cited as 'Book C:V' or 'Book C:V-V'"],
+  "social_x": "single tweet under 280 chars, reverent, with a hook",
   "social_instagram": "instagram caption 100-200 words with line breaks and a closing CTA",
   "social_facebook": "facebook post 150-250 words inviting reflection",
   "discussion_guide": "3-5 numbered small-group discussion questions",
-  "bulletin": "a 120 word bulletin paragraph",
-  "newsletter": "a 200 word newsletter summary",
-  "scripture_refs": ["Book C:V", ...]   // every scripture reference cited (e.g. "John 3:16", "Romans 8:28-30")
+  "bulletin": "120 word bulletin paragraph",
+  "newsletter": "200 word newsletter summary"
 }
+
 Return ONLY valid JSON. Transcript:\n\n${data.transcript.slice(0, 12000)}`;
 
-    const raw = await callGateway(
-      [{ role: "user", content: prompt }],
-      true,
-    );
+    const raw = await callGateway([{ role: "user", content: prompt }], true);
 
     let parsed: any;
     try {
@@ -77,29 +78,25 @@ Return ONLY valid JSON. Transcript:\n\n${data.transcript.slice(0, 12000)}`;
     }
 
     const orgId = sermon.organization_id;
-    const kinds: Array<[string, string]> = [
-      ["social_x", parsed.social_x],
-      ["social_instagram", parsed.social_instagram],
-      ["social_facebook", parsed.social_facebook],
-      ["discussion_guide", parsed.discussion_guide],
-      ["bulletin", parsed.bulletin],
-      ["newsletter", parsed.newsletter],
-    ];
 
-    // Replace existing
     await supabase.from("sermon_content").delete().eq("sermon_id", data.sermonId);
     await supabase.from("scripture_refs").delete().eq("sermon_id", data.sermonId);
 
-    await supabase.from("sermon_content").insert(
-      kinds
-        .filter(([, v]) => typeof v === "string" && v.length)
-        .map(([kind, content]) => ({
-          sermon_id: data.sermonId,
-          organization_id: orgId,
-          kind,
-          content,
-        })),
-    );
+    const notebook = {
+      core_theology: Array.isArray(parsed.core_theology) ? parsed.core_theology : [],
+      action_steps: Array.isArray(parsed.action_steps) ? parsed.action_steps : [],
+      visual_metaphors: Array.isArray(parsed.visual_metaphors) ? parsed.visual_metaphors : [],
+    };
+
+    const rows: Array<{ sermon_id: string; organization_id: string; kind: string; content: string }> = [
+      { sermon_id: data.sermonId, organization_id: orgId, kind: "notebook", content: JSON.stringify(notebook) },
+    ];
+    for (const k of ["social_x", "social_instagram", "social_facebook", "discussion_guide", "bulletin", "newsletter"]) {
+      if (typeof parsed[k] === "string" && parsed[k].length) {
+        rows.push({ sermon_id: data.sermonId, organization_id: orgId, kind: k, content: parsed[k] });
+      }
+    }
+    await supabase.from("sermon_content").insert(rows);
 
     const refs: string[] = Array.isArray(parsed.scripture_refs) ? parsed.scripture_refs : [];
     if (refs.length) {
@@ -123,6 +120,45 @@ Return ONLY valid JSON. Transcript:\n\n${data.transcript.slice(0, 12000)}`;
       await supabase.from("sermons").update({ summary: parsed.summary }).eq("id", data.sermonId);
     }
 
-    void userId;
     return { ok: true };
+  });
+
+const ChatInput = z.object({
+  sermonId: z.string().uuid(),
+  question: z.string().min(1).max(2000),
+  history: z
+    .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() }))
+    .max(20)
+    .optional(),
+});
+
+export const chatWithSermon = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ChatInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: sermon, error } = await supabase
+      .from("sermons")
+      .select("title, transcript, summary, scripture_focus")
+      .eq("id", data.sermonId)
+      .maybeSingle();
+    if (error || !sermon) throw new Error("Sermon not found");
+    if (!sermon.transcript) throw new Error("This sermon has no transcript to discuss yet.");
+
+    const system = `You are a thoughtful study companion grounded ONLY in the provided sermon. If the answer is not in the transcript, say so plainly. Cite the speaker's own phrasing when helpful. Keep answers tight and bullet-friendly.
+
+SERMON TITLE: ${sermon.title}
+SCRIPTURE FOCUS: ${sermon.scripture_focus ?? "—"}
+SUMMARY: ${sermon.summary ?? "—"}
+
+TRANSCRIPT:
+${(sermon.transcript ?? "").slice(0, 14000)}`;
+
+    const messages = [
+      { role: "system", content: system },
+      ...(data.history ?? []),
+      { role: "user", content: data.question },
+    ];
+    const answer = await callGateway(messages);
+    return { answer };
   });
