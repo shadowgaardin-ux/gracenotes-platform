@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated/sermons/new")({
 });
 
 function NewSermon() {
-  const { profile, isPastoral } = useCurrentUser();
+  const { profile } = useCurrentUser();
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [deliveredAt, setDeliveredAt] = useState("");
@@ -55,16 +55,6 @@ function NewSermon() {
     } finally {
       setSaving(false);
     }
-  }
-
-  if (!isPastoral) {
-    return (
-      <AppShell>
-        <div className="p-10 text-sm text-muted-foreground">
-          Only pastors and admins can add sermons.
-        </div>
-      </AppShell>
-    );
   }
 
   return (
