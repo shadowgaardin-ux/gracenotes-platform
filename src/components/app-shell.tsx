@@ -1,19 +1,21 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, ScrollText, Lock, Settings, LogOut, BookOpenText } from "lucide-react";
+import { LayoutDashboard, ScrollText, Lock, Settings, LogOut, BookOpenText, Sun, Moon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { profile, orgName, isPastoral, roles } = useCurrentUser();
+  const { toggle } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const nav = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: true },
     { to: "/sermons", label: "Sermons", icon: ScrollText, show: true },
     { to: "/vault", label: "Pastoral Vault", icon: Lock, show: isPastoral },
-    { to: "/settings", label: "Settings", icon: Settings, show: roles.includes("admin") },
+    { to: "/settings", label: "Settings", icon: Settings, show: true },
   ].filter((n) => n.show);
 
   async function signOut() {
@@ -56,19 +58,29 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="px-4 py-4 border-t border-sidebar-border">
+        <div className="px-4 py-4 border-t border-sidebar-border space-y-3">
           <div className="text-sm">
             <p className="font-medium truncate">{profile?.full_name ?? profile?.email}</p>
             <p className="text-xs text-sidebar-foreground/60 capitalize">
               {roles.join(" · ") || "member"}
             </p>
           </div>
-          <button
-            onClick={signOut}
-            className="mt-3 inline-flex items-center gap-2 text-xs text-sidebar-foreground/70 hover:text-sidebar-primary"
-          >
-            <LogOut className="h-3.5 w-3.5" /> Sign out
-          </button>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={signOut}
+              className="inline-flex items-center gap-2 text-xs text-sidebar-foreground/70 hover:text-sidebar-primary"
+            >
+              <LogOut className="h-3.5 w-3.5" /> Sign out
+            </button>
+            <button
+              onClick={toggle}
+              title="Toggle theme"
+              className="inline-flex items-center justify-center h-7 w-7 rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-primary"
+            >
+              <Sun className="h-3.5 w-3.5 dark:hidden" />
+              <Moon className="h-3.5 w-3.5 hidden dark:block" />
+            </button>
+          </div>
         </div>
       </aside>
       <main className="flex-1 min-w-0">{children}</main>

@@ -1,11 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Mic, Square, Pause, Play, Upload, Link2, FileText, Sparkles, X } from "lucide-react";
+import { Mic, Square, Pause, Play, Upload, Link2, FileText, Sparkles, X, Loader2, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
 type Tab = "record" | "upload" | "url" | "text";
+
+// strip "data:audio/webm;codecs=opus;base64,...."
+function splitDataUrl(dataUrl: string): { base64: string; mime: string } {
+  const m = dataUrl.match(/^data:([^;,]+)(?:;[^,]*)?;base64,(.+)$/);
+  if (!m) return { base64: "", mime: "" };
+  return { mime: m[1], base64: m[2] };
+}
+
+function mimeToFormat(mime: string): "webm" | "mp3" | "wav" | "m4a" | "ogg" | "aac" | "flac" {
+  const m = mime.toLowerCase();
+  if (m.includes("webm")) return "webm";
+  if (m.includes("mp4") || m.includes("m4a") || m.includes("aac")) return "m4a";
+  if (m.includes("mpeg") || m.includes("mp3")) return "mp3";
+  if (m.includes("wav") || m.includes("wave")) return "wav";
+  if (m.includes("ogg") || m.includes("opus")) return "ogg";
+  if (m.includes("flac")) return "flac";
+  return "webm";
+}
 
 export function NewSermonDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { profile } = useCurrentUser();
@@ -14,7 +32,9 @@ export function NewSermonDialog({ open, onOpenChange }: { open: boolean; onOpenC
   const [title, setTitle] = useState("");
   const [shared, setShared] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [audioDataUrl, setAudioDataUrl] = useState("");
   const [audioUrl, setAudioUrl] = useState("");
+  const [transcribing, setTranscribing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   function reset() {
@@ -22,7 +42,31 @@ export function NewSermonDialog({ open, onOpenChange }: { open: boolean; onOpenC
     setTitle("");
     setShared(false);
     setTranscript("");
+    setAudioDataUrl("");
     setAudioUrl("");
+  }
+
+  async function runTranscription(dataUrl: string) {
+    const { base64, mime } = splitDataUrl(dataUrl);
+    if (!base64) return toast.error("Couldn't read audio data");
+    setTranscribing(true);
+    try {
+      const { transcribeAudio } = await import("@/lib/ai.functions");
+      const { transcript: t } = await transcribeAudio({
+        data: { audioBase64: base64, format: mimeToFormat(mime) },
+      });
+      setTranscript(t);
+      toast.success("Transcribed.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Transcription failed");
+    } finally {
+      setTranscribing(false);
+    }
+  }
+
+  async function handleAudioCaptured(dataUrl: string) {
+    setAudioDataUrl(dataUrl);
+    await runTranscription(dataUrl);
   }
 
   async function handleSave() {
@@ -105,8 +149,8 @@ export function NewSermonDialog({ open, onOpenChange }: { open: boolean; onOpenC
         </div>
 
         <div className="px-6 py-5">
-          {tab === "record" && <RecorderPanel onAudio={(url) => setAudioUrl(url)} />}
-          {tab === "upload" && <UploadPanel onPicked={(url) => setAudioUrl(url)} />}
+          {tab === "record" && <RecorderPanel onAudio={handleAudioCaptured} />}
+          {tab === "upload" && <UploadPanel onPicked={handleAudioCaptured} />}
           {tab === "url" && (
             <div className="space-y-2">
               <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Audio or stream URL</label>
@@ -119,13 +163,35 @@ export function NewSermonDialog({ open, onOpenChange }: { open: boolean; onOpenC
               <p className="text-xs text-muted-foreground">We'll attach the link to this entry. Paste a transcript below to unlock AI notes.</p>
             </div>
           )}
+
           <div className="mt-5">
-            <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Transcript (optional, unlocks AI)</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                Transcript {tab === "text" ? "" : "(auto-generated)"}
+              </label>
+              {transcribing && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Transcribing with Gemini…
+                </span>
+              )}
+              {!transcribing && audioDataUrl && (
+                <button
+                  onClick={() => runTranscription(audioDataUrl)}
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Wand2 className="h-3 w-3" /> Re-transcribe
+                </button>
+              )}
+            </div>
             <textarea
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
-              rows={tab === "text" ? 10 : 5}
-              placeholder="Paste the sermon transcript or jot key points. Audio transcription is coming soon — for now this powers your AI notes."
+              rows={tab === "text" ? 10 : 6}
+              placeholder={
+                tab === "text"
+                  ? "Paste the sermon transcript or jot key points."
+                  : "Your transcript will appear here after recording or uploading. You can edit it freely."
+              }
               className="mt-1.5 w-full bg-background border border-input rounded-md px-3 py-2.5 text-sm leading-relaxed font-mono outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -145,7 +211,7 @@ export function NewSermonDialog({ open, onOpenChange }: { open: boolean; onOpenC
             </span>
           </label>
           <button
-            disabled={saving || !title.trim()}
+            disabled={saving || transcribing || !title.trim()}
             onClick={handleSave}
             className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
@@ -173,7 +239,7 @@ function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: ()
 }
 
 // ---------- Live recording ----------
-function RecorderPanel({ onAudio }: { onAudio: (dataUrl: string) => void }) {
+function RecorderPanel({ onAudio }: { onAudio: (dataUrl: string) => void | Promise<void> }) {
   const [state, setState] = useState<"idle" | "recording" | "paused" | "stopped">("idle");
   const [seconds, setSeconds] = useState(0);
   const [level, setLevel] = useState(0);
@@ -216,7 +282,6 @@ function RecorderPanel({ onAudio }: { onAudio: (dataUrl: string) => void }) {
       };
       rec.start();
 
-      // Visualizer
       const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
       const ctx = new AC();
       audioCtxRef.current = ctx;
@@ -283,10 +348,10 @@ function RecorderPanel({ onAudio }: { onAudio: (dataUrl: string) => void }) {
             <div className="h-full bg-primary transition-[width] duration-75" style={{ width: `${Math.round(level * 100)}%` }} />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            {state === "idle" && "Press record to capture preaching live."}
+            {state === "idle" && "Press record. We'll transcribe automatically when you stop."}
             {state === "recording" && "Recording in progress…"}
             {state === "paused" && "Paused — tap resume to continue."}
-            {state === "stopped" && "Recording saved to this entry."}
+            {state === "stopped" && "Recording captured — transcription will start shortly."}
           </p>
         </div>
       </div>
@@ -303,7 +368,7 @@ function RecorderPanel({ onAudio }: { onAudio: (dataUrl: string) => void }) {
               <Pause className="h-4 w-4" /> Pause
             </button>
             <button onClick={stop} className="inline-flex items-center gap-2 rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:opacity-90">
-              <Square className="h-4 w-4" /> Stop
+              <Square className="h-4 w-4" /> Stop & transcribe
             </button>
           </>
         )}
@@ -313,7 +378,7 @@ function RecorderPanel({ onAudio }: { onAudio: (dataUrl: string) => void }) {
               <Play className="h-4 w-4" /> Resume
             </button>
             <button onClick={stop} className="inline-flex items-center gap-2 rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:opacity-90">
-              <Square className="h-4 w-4" /> Stop
+              <Square className="h-4 w-4" /> Stop & transcribe
             </button>
           </>
         )}
@@ -339,7 +404,7 @@ function RecorderPanel({ onAudio }: { onAudio: (dataUrl: string) => void }) {
 }
 
 // ---------- Upload ----------
-function UploadPanel({ onPicked }: { onPicked: (dataUrl: string) => void }) {
+function UploadPanel({ onPicked }: { onPicked: (dataUrl: string) => void | Promise<void> }) {
   const [file, setFile] = useState<File | null>(null);
   const [drag, setDrag] = useState(false);
 
@@ -374,7 +439,7 @@ function UploadPanel({ onPicked }: { onPicked: (dataUrl: string) => void }) {
       <input type="file" accept="audio/*" className="hidden" onChange={(e) => handle(e.target.files?.[0] ?? null)} />
       <Upload className="h-7 w-7 mx-auto text-muted-foreground" />
       <p className="mt-3 text-sm font-medium">{file ? file.name : "Drop an MP3 or WAV here"}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{file ? `${(file.size / 1024 / 1024).toFixed(1)} MB attached` : "or click to browse"}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{file ? `${(file.size / 1024 / 1024).toFixed(1)} MB — transcribing automatically` : "or click to browse"}</p>
     </label>
   );
 }
