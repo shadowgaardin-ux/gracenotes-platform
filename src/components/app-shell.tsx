@@ -1,19 +1,21 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, ScrollText, Lock, Settings, LogOut, BookOpenText } from "lucide-react";
+import { LayoutDashboard, ScrollText, Lock, Settings, LogOut, BookOpenText, Sun, Moon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { profile, orgName, isPastoral, roles } = useCurrentUser();
+  const { toggle } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const nav = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: true },
     { to: "/sermons", label: "Sermons", icon: ScrollText, show: true },
     { to: "/vault", label: "Pastoral Vault", icon: Lock, show: isPastoral },
-    { to: "/settings", label: "Settings", icon: Settings, show: roles.includes("admin") },
+    { to: "/settings", label: "Settings", icon: Settings, show: true },
   ].filter((n) => n.show);
 
   async function signOut() {
