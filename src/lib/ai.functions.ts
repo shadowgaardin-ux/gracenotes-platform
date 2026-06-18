@@ -162,3 +162,51 @@ ${(sermon.transcript ?? "").slice(0, 14000)}`;
     const answer = await callGateway(messages);
     return { answer };
   });
+
+// ---------- Audio transcription ----------
+const TranscribeInput = z.object({
+  audioBase64: z.string().min(20),
+  format: z.enum(["webm", "mp3", "wav", "m4a", "ogg", "aac", "flac"]),
+});
+
+export const transcribeAudio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => TranscribeInput.parse(d))
+  .handler(async ({ data }) => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("AI gateway not configured");
+
+    const res = await fetch(GATEWAY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": key,
+        "X-Lovable-AIG-SDK": "vercel-ai-sdk",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Transcribe this sermon audio verbatim into clear paragraphs. Preserve scripture references exactly as spoken. Return only the transcript text — no headings, no commentary.",
+              },
+              {
+                type: "input_audio",
+                input_audio: { data: data.audioBase64, format: data.format },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    if (res.status === 429) throw new Error("AI rate limit reached. Try again shortly.");
+    if (res.status === 402) throw new Error("AI credits exhausted. Add credits in workspace settings.");
+    if (!res.ok) throw new Error(`Transcription failed (${res.status}): ${await res.text()}`);
+    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const transcript = json.choices?.[0]?.message?.content?.trim() ?? "";
+    if (!transcript) throw new Error("No transcript returned");
+    return { transcript };
+  });
