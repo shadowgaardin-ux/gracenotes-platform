@@ -15,10 +15,16 @@ import {
   Footprints,
   Eye,
   ScrollText,
+  Star,
+  Download,
+  FileDown,
+  X,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { supabase } from "@/integrations/supabase/client";
+import { BibleVersePopover } from "@/components/bible-verse-popover";
+import { downloadTranscript, exportSermonPDF } from "@/lib/sermon-export";
 
 export const Route = createFileRoute("/_authenticated/sermons/$id")({
   head: () => ({ meta: [{ title: "Sermon — GraceNotes" }] }),
@@ -95,6 +101,20 @@ function SermonDetail() {
     }
   }
 
+  async function toggleFavorite() {
+    if (!sermonQ.data) return;
+    const next = !sermonQ.data.is_favorite;
+    const { error } = await supabase.from("sermons").update({ is_favorite: next }).eq("id", id);
+    if (error) toast.error(error.message);
+    else qc.invalidateQueries({ queryKey: ["sermon", id] });
+  }
+
+  async function updateMeta(patch: { tags?: string[]; series?: string | null }) {
+    const { error } = await supabase.from("sermons").update(patch).eq("id", id);
+    if (error) toast.error(error.message);
+    else qc.invalidateQueries({ queryKey: ["sermon", id] });
+  }
+
   async function remove() {
     if (!confirm("Delete this sermon and all derived content?")) return;
     const { error } = await supabase.from("sermons").delete().eq("id", id);
@@ -137,41 +157,95 @@ function SermonDetail() {
               {s.visibility === "shared" ? "Shared to hub" : "Private notebook"}
               <span className="opacity-50">·</span>
               {s.delivered_at ?? new Date(s.created_at).toLocaleDateString()}
+              {s.series && (
+                <>
+                  <span className="opacity-50">·</span>
+                  <span className="text-primary">{s.series}</span>
+                </>
+              )}
             </p>
-            <h1 className="mt-1 font-display text-4xl md:text-5xl text-balance">{s.title}</h1>
+            <h1 className="mt-1 font-display text-4xl md:text-5xl text-balance flex items-center gap-2">
+              {s.is_favorite && (
+                <Star className="h-6 w-6 fill-[color:var(--color-gold)] text-[color:var(--color-gold)]" />
+              )}
+              {s.title}
+            </h1>
             {s.scripture_focus && <p className="mt-2 text-sm italic text-muted-foreground">{s.scripture_focus}</p>}
           </div>
-          {isAuthor && (
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
+            {isAuthor && (
               <button
-                onClick={toggleShare}
+                onClick={toggleFavorite}
+                title={s.is_favorite ? "Unfavorite" : "Favorite"}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs hover:bg-accent"
               >
-                {s.visibility === "shared" ? <Lock className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
-                {s.visibility === "shared" ? "Make private" : "Share to hub"}
+                <Star className={`h-3.5 w-3.5 ${s.is_favorite ? "fill-[color:var(--color-gold)] text-[color:var(--color-gold)]" : ""}`} />
               </button>
+            )}
+            {s.transcript && (
               <button
-                onClick={regenerate}
-                disabled={regenerating}
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                {regenerating ? "Working…" : hasNotes ? "Regenerate" : "Generate notes"}
-              </button>
-              <button
-                onClick={remove}
+                onClick={() => downloadTranscript(s.title, s.transcript!)}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs hover:bg-accent"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Download className="h-3.5 w-3.5" /> Transcript
               </button>
-            </div>
-          )}
+            )}
+            <button
+              onClick={() =>
+                exportSermonPDF({
+                  title: s.title,
+                  date: s.delivered_at,
+                  scripture: s.scripture_focus,
+                  series: s.series,
+                  summary: s.summary,
+                  notebook,
+                  references: (refsQ.data ?? []).map((r: any) => r.reference),
+                })
+              }
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs hover:bg-accent"
+            >
+              <FileDown className="h-3.5 w-3.5" /> PDF
+            </button>
+            {isAuthor && (
+              <>
+                <button
+                  onClick={toggleShare}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs hover:bg-accent"
+                >
+                  {s.visibility === "shared" ? <Lock className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
+                  {s.visibility === "shared" ? "Make private" : "Share to hub"}
+                </button>
+                <button
+                  onClick={regenerate}
+                  disabled={regenerating}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {regenerating ? "Working…" : hasNotes ? "Regenerate" : "Generate notes"}
+                </button>
+                <button
+                  onClick={remove}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs hover:bg-accent"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {s.summary && (
           <div className="mt-6 rounded-lg border-l-2 border-[color:var(--color-gold)] bg-card px-5 py-4">
             <p className="text-sm leading-relaxed">{s.summary}</p>
           </div>
+        )}
+
+        {isAuthor && (
+          <MetaEditor
+            tags={s.tags ?? []}
+            series={s.series}
+            onChange={(patch) => updateMeta(patch)}
+          />
         )}
 
         {/* NotebookLM workspace */}
@@ -214,17 +288,10 @@ function SermonDetail() {
                 <h2 className="font-display text-lg flex items-center gap-2">
                   <Quote className="h-4 w-4 text-primary" /> Scripture citations
                 </h2>
+                <p className="mt-1 text-xs text-muted-foreground">Tap any reference to read the verse.</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {refsQ.data!.map((r: any) => (
-                    <a
-                      key={r.id}
-                      href={`https://www.biblegateway.com/passage/?search=${encodeURIComponent(r.reference)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full border border-border bg-background px-3 py-1 text-xs hover:border-primary/40"
-                    >
-                      {r.reference}
-                    </a>
+                    <BibleVersePopover key={r.id} reference={r.reference} />
                   ))}
                 </div>
               </section>
@@ -426,5 +493,82 @@ function ChatPanel({ sermonId, canChat }: { sermonId: string; canChat: boolean }
         </div>
       </div>
     </aside>
+  );
+}
+
+function MetaEditor({
+  tags,
+  series,
+  onChange,
+}: {
+  tags: string[];
+  series: string | null;
+  onChange: (patch: { tags?: string[]; series?: string | null }) => void;
+}) {
+  const [tagInput, setTagInput] = useState("");
+  const [seriesInput, setSeriesInput] = useState(series ?? "");
+
+  useEffect(() => {
+    setSeriesInput(series ?? "");
+  }, [series]);
+
+  function addTag() {
+    const t = tagInput.trim().toLowerCase().replace(/^#/, "");
+    if (!t || tags.includes(t)) {
+      setTagInput("");
+      return;
+    }
+    onChange({ tags: [...tags, t] });
+    setTagInput("");
+  }
+  function removeTag(t: string) {
+    onChange({ tags: tags.filter((x) => x !== t) });
+  }
+  function commitSeries() {
+    const v = seriesInput.trim();
+    if ((v || null) === (series ?? null)) return;
+    onChange({ series: v || null });
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-border bg-card px-5 py-4 grid gap-3 md:grid-cols-2">
+      <div>
+        <label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Series</label>
+        <input
+          value={seriesInput}
+          onChange={(e) => setSeriesInput(e.target.value)}
+          onBlur={commitSeries}
+          onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+          placeholder="e.g. Summer in Psalms"
+          className="mt-1 w-full bg-background border border-input rounded-md px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+      </div>
+      <div>
+        <label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Tags</label>
+        <div className="mt-1 flex flex-wrap gap-1.5 items-center rounded-md border border-input bg-background px-2 py-1.5">
+          {tags.map((t) => (
+            <span key={t} className="inline-flex items-center gap-1 text-xs rounded-full bg-muted px-2 py-0.5">
+              #{t}
+              <button onClick={() => removeTag(t)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+          <input
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === ",") {
+                e.preventDefault();
+                addTag();
+              }
+            }}
+            onBlur={addTag}
+            placeholder={tags.length ? "" : "grace, hope…"}
+            className="flex-1 min-w-[80px] bg-transparent text-sm outline-none py-0.5"
+          />
+        </div>
+      </div>
+    </div>
   );
 }

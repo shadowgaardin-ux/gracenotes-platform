@@ -208,10 +208,13 @@ export type Database = {
           created_at: string
           delivered_at: string | null
           id: string
+          is_favorite: boolean
           organization_id: string
           scripture_focus: string | null
+          series: string | null
           source_kind: string
           summary: string | null
+          tags: string[]
           title: string
           transcript: string | null
           updated_at: string
@@ -223,10 +226,13 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           id?: string
+          is_favorite?: boolean
           organization_id: string
           scripture_focus?: string | null
+          series?: string | null
           source_kind?: string
           summary?: string | null
+          tags?: string[]
           title: string
           transcript?: string | null
           updated_at?: string
@@ -238,10 +244,13 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           id?: string
+          is_favorite?: boolean
           organization_id?: string
           scripture_focus?: string | null
+          series?: string | null
           source_kind?: string
           summary?: string | null
+          tags?: string[]
           title?: string
           transcript?: string | null
           updated_at?: string
