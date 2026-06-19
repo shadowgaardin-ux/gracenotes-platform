@@ -157,41 +157,95 @@ function SermonDetail() {
               {s.visibility === "shared" ? "Shared to hub" : "Private notebook"}
               <span className="opacity-50">·</span>
               {s.delivered_at ?? new Date(s.created_at).toLocaleDateString()}
+              {s.series && (
+                <>
+                  <span className="opacity-50">·</span>
+                  <span className="text-primary">{s.series}</span>
+                </>
+              )}
             </p>
-            <h1 className="mt-1 font-display text-4xl md:text-5xl text-balance">{s.title}</h1>
+            <h1 className="mt-1 font-display text-4xl md:text-5xl text-balance flex items-center gap-2">
+              {s.is_favorite && (
+                <Star className="h-6 w-6 fill-[color:var(--color-gold)] text-[color:var(--color-gold)]" />
+              )}
+              {s.title}
+            </h1>
             {s.scripture_focus && <p className="mt-2 text-sm italic text-muted-foreground">{s.scripture_focus}</p>}
           </div>
-          {isAuthor && (
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
+            {isAuthor && (
               <button
-                onClick={toggleShare}
+                onClick={toggleFavorite}
+                title={s.is_favorite ? "Unfavorite" : "Favorite"}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs hover:bg-accent"
               >
-                {s.visibility === "shared" ? <Lock className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
-                {s.visibility === "shared" ? "Make private" : "Share to hub"}
+                <Star className={`h-3.5 w-3.5 ${s.is_favorite ? "fill-[color:var(--color-gold)] text-[color:var(--color-gold)]" : ""}`} />
               </button>
+            )}
+            {s.transcript && (
               <button
-                onClick={regenerate}
-                disabled={regenerating}
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                {regenerating ? "Working…" : hasNotes ? "Regenerate" : "Generate notes"}
-              </button>
-              <button
-                onClick={remove}
+                onClick={() => downloadTranscript(s.title, s.transcript!)}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs hover:bg-accent"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Download className="h-3.5 w-3.5" /> Transcript
               </button>
-            </div>
-          )}
+            )}
+            <button
+              onClick={() =>
+                exportSermonPDF({
+                  title: s.title,
+                  date: s.delivered_at,
+                  scripture: s.scripture_focus,
+                  series: s.series,
+                  summary: s.summary,
+                  notebook,
+                  references: (refsQ.data ?? []).map((r: any) => r.reference),
+                })
+              }
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs hover:bg-accent"
+            >
+              <FileDown className="h-3.5 w-3.5" /> PDF
+            </button>
+            {isAuthor && (
+              <>
+                <button
+                  onClick={toggleShare}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs hover:bg-accent"
+                >
+                  {s.visibility === "shared" ? <Lock className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
+                  {s.visibility === "shared" ? "Make private" : "Share to hub"}
+                </button>
+                <button
+                  onClick={regenerate}
+                  disabled={regenerating}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {regenerating ? "Working…" : hasNotes ? "Regenerate" : "Generate notes"}
+                </button>
+                <button
+                  onClick={remove}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs hover:bg-accent"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {s.summary && (
           <div className="mt-6 rounded-lg border-l-2 border-[color:var(--color-gold)] bg-card px-5 py-4">
             <p className="text-sm leading-relaxed">{s.summary}</p>
           </div>
+        )}
+
+        {isAuthor && (
+          <MetaEditor
+            tags={s.tags ?? []}
+            series={s.series}
+            onChange={(patch) => updateMeta(patch)}
+          />
         )}
 
         {/* NotebookLM workspace */}
