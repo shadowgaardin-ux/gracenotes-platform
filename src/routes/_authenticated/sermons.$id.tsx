@@ -495,3 +495,80 @@ function ChatPanel({ sermonId, canChat }: { sermonId: string; canChat: boolean }
     </aside>
   );
 }
+
+function MetaEditor({
+  tags,
+  series,
+  onChange,
+}: {
+  tags: string[];
+  series: string | null;
+  onChange: (patch: { tags?: string[]; series?: string | null }) => void;
+}) {
+  const [tagInput, setTagInput] = useState("");
+  const [seriesInput, setSeriesInput] = useState(series ?? "");
+
+  useEffect(() => {
+    setSeriesInput(series ?? "");
+  }, [series]);
+
+  function addTag() {
+    const t = tagInput.trim().toLowerCase().replace(/^#/, "");
+    if (!t || tags.includes(t)) {
+      setTagInput("");
+      return;
+    }
+    onChange({ tags: [...tags, t] });
+    setTagInput("");
+  }
+  function removeTag(t: string) {
+    onChange({ tags: tags.filter((x) => x !== t) });
+  }
+  function commitSeries() {
+    const v = seriesInput.trim();
+    if ((v || null) === (series ?? null)) return;
+    onChange({ series: v || null });
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-border bg-card px-5 py-4 grid gap-3 md:grid-cols-2">
+      <div>
+        <label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Series</label>
+        <input
+          value={seriesInput}
+          onChange={(e) => setSeriesInput(e.target.value)}
+          onBlur={commitSeries}
+          onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+          placeholder="e.g. Summer in Psalms"
+          className="mt-1 w-full bg-background border border-input rounded-md px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+      </div>
+      <div>
+        <label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Tags</label>
+        <div className="mt-1 flex flex-wrap gap-1.5 items-center rounded-md border border-input bg-background px-2 py-1.5">
+          {tags.map((t) => (
+            <span key={t} className="inline-flex items-center gap-1 text-xs rounded-full bg-muted px-2 py-0.5">
+              #{t}
+              <button onClick={() => removeTag(t)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+          <input
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === ",") {
+                e.preventDefault();
+                addTag();
+              }
+            }}
+            onBlur={addTag}
+            placeholder={tags.length ? "" : "grace, hope…"}
+            className="flex-1 min-w-[80px] bg-transparent text-sm outline-none py-0.5"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
