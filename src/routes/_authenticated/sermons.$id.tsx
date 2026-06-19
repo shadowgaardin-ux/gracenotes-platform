@@ -288,17 +288,10 @@ function SermonDetail() {
                 <h2 className="font-display text-lg flex items-center gap-2">
                   <Quote className="h-4 w-4 text-primary" /> Scripture citations
                 </h2>
+                <p className="mt-1 text-xs text-muted-foreground">Tap any reference to read the verse.</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {refsQ.data!.map((r: any) => (
-                    <a
-                      key={r.id}
-                      href={`https://www.biblegateway.com/passage/?search=${encodeURIComponent(r.reference)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full border border-border bg-background px-3 py-1 text-xs hover:border-primary/40"
-                    >
-                      {r.reference}
-                    </a>
+                    <BibleVersePopover key={r.id} reference={r.reference} />
                   ))}
                 </div>
               </section>
