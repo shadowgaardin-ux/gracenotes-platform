@@ -15,10 +15,16 @@ import {
   Footprints,
   Eye,
   ScrollText,
+  Star,
+  Download,
+  FileDown,
+  X,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { supabase } from "@/integrations/supabase/client";
+import { BibleVersePopover } from "@/components/bible-verse-popover";
+import { downloadTranscript, exportSermonPDF } from "@/lib/sermon-export";
 
 export const Route = createFileRoute("/_authenticated/sermons/$id")({
   head: () => ({ meta: [{ title: "Sermon — GraceNotes" }] }),
@@ -93,6 +99,20 @@ function SermonDetail() {
       toast.success(next === "shared" ? "Shared to Church Hub" : "Made private");
       qc.invalidateQueries({ queryKey: ["sermon", id] });
     }
+  }
+
+  async function toggleFavorite() {
+    if (!sermonQ.data) return;
+    const next = !sermonQ.data.is_favorite;
+    const { error } = await supabase.from("sermons").update({ is_favorite: next }).eq("id", id);
+    if (error) toast.error(error.message);
+    else qc.invalidateQueries({ queryKey: ["sermon", id] });
+  }
+
+  async function updateMeta(patch: { tags?: string[]; series?: string | null }) {
+    const { error } = await supabase.from("sermons").update(patch).eq("id", id);
+    if (error) toast.error(error.message);
+    else qc.invalidateQueries({ queryKey: ["sermon", id] });
   }
 
   async function remove() {
