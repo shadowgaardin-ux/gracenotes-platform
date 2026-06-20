@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { Plus, ScrollText, Lock, Users, Search, Star, Tag, Layers } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/integrations/supabase/client";
-import { NewSermonDialog } from "@/components/new-sermon-dialog";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
 export const Route = createFileRoute("/_authenticated/sermons/")({
@@ -14,12 +13,12 @@ export const Route = createFileRoute("/_authenticated/sermons/")({
 
 function SermonsList() {
   const { profile } = useCurrentUser();
-  const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<"mine" | "hub">("mine");
   const [query, setQuery] = useState("");
   const [favOnly, setFavOnly] = useState(false);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activeSeries, setActiveSeries] = useState<string | null>(null);
+
 
   const q = useQuery({
     queryKey: ["sermons", scope, profile?.id, profile?.organization_id],
@@ -71,12 +70,13 @@ function SermonsList() {
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Library</p>
             <h1 className="mt-1 font-display text-4xl">Sermons</h1>
           </div>
-          <button
-            onClick={() => setOpen(true)}
+          <Link
+            to="/sermons/new"
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
             <Plus className="h-4 w-4" /> New sermon
-          </button>
+          </Link>
+
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -193,7 +193,7 @@ function SermonsList() {
         </div>
       </div>
 
-      <NewSermonDialog open={open} onOpenChange={setOpen} />
     </AppShell>
+
   );
 }
