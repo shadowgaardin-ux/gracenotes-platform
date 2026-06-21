@@ -17,6 +17,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const [showInquiry, setShowInquiry] = useState(false);
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border/60">
