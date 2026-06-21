@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BookOpenText, Sparkles, Lock, Quote } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { BookOpenText, Sparkles, Lock, Quote, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -14,6 +17,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const [showInquiry, setShowInquiry] = useState(false);
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border/60">
@@ -50,13 +54,12 @@ function Landing() {
             GraceNotes is a quiet, careful AI platform for the local church. Turn one sermon into a week of bulletins, social posts, and small-group guides — and keep the sacred work of pastoral care in a vault only you can open.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              to="/auth"
-              search={{ mode: "signup" } as never}
+            <button
+              onClick={() => setShowInquiry(true)}
               className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:opacity-90"
             >
-              Start your church
-            </Link>
+              Request access for your organization
+            </button>
             <Link
               to="/auth"
               className="rounded-md border border-border bg-card px-6 py-3 text-sm font-medium hover:bg-accent"
@@ -97,6 +100,55 @@ function Landing() {
       <footer className="border-t border-border/60 py-10 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()} GraceNotes · Made for the church
       </footer>
+      {showInquiry && <InquiryDialog onClose={() => setShowInquiry(false)} />}
+    </div>
+  );
+}
+
+function InquiryDialog({ onClose }: { onClose: () => void }) {
+  const [form, setForm] = useState({ contact_name: "", email: "", organization_name: "", size: "", message: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function submit() {
+    if (!form.contact_name || !form.email || !form.organization_name) {
+      toast.error("Please complete the required fields");
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.from("organization_inquiries").insert(form);
+    setSubmitting(false);
+    if (error) { toast.error(error.message); return; }
+    setDone(true);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 relative">
+        <button onClick={onClose} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+        {done ? (
+          <div className="text-center py-6">
+            <h2 className="font-display text-2xl">Thank you</h2>
+            <p className="mt-2 text-sm text-muted-foreground">We'll be in touch shortly to set up your workspace.</p>
+            <button onClick={onClose} className="mt-5 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">Close</button>
+          </div>
+        ) : (
+          <>
+            <h2 className="font-display text-2xl">Request access</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Tell us about your organization and we'll get back to you with details.</p>
+            <div className="mt-5 space-y-3">
+              <input placeholder="Your name *" value={form.contact_name} onChange={e=>setForm({...form, contact_name:e.target.value})} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+              <input placeholder="Email *" type="email" value={form.email} onChange={e=>setForm({...form, email:e.target.value})} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+              <input placeholder="Organization name *" value={form.organization_name} onChange={e=>setForm({...form, organization_name:e.target.value})} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+              <input placeholder="Size (e.g. 150 members)" value={form.size} onChange={e=>setForm({...form, size:e.target.value})} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+              <textarea placeholder="Anything we should know?" rows={3} value={form.message} onChange={e=>setForm({...form, message:e.target.value})} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+              <button disabled={submitting} onClick={submit} className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                {submitting ? "Sending…" : "Send request"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
