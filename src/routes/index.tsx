@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BookOpenText, Sparkles, Lock, Quote } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { BookOpenText, Sparkles, Lock, Quote, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
