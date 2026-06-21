@@ -54,13 +54,12 @@ function Landing() {
             GraceNotes is a quiet, careful AI platform for the local church. Turn one sermon into a week of bulletins, social posts, and small-group guides — and keep the sacred work of pastoral care in a vault only you can open.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              to="/auth"
-              search={{ mode: "signup" } as never}
+            <button
+              onClick={() => setShowInquiry(true)}
               className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:opacity-90"
             >
-              Start your church
-            </Link>
+              Request access for your organization
+            </button>
             <Link
               to="/auth"
               className="rounded-md border border-border bg-card px-6 py-3 text-sm font-medium hover:bg-accent"
