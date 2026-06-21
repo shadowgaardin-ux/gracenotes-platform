@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedVaultRouteImport } from './routes/_authenticated/vault'
+import { Route as AuthenticatedSuperAdminPortalRouteImport } from './routes/_authenticated/super-admin-portal'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSermonsRouteImport } from './routes/_authenticated/sermons'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
@@ -41,6 +42,12 @@ const AuthenticatedVaultRoute = AuthenticatedVaultRouteImport.update({
   path: '/vault',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSuperAdminPortalRoute =
+  AuthenticatedSuperAdminPortalRouteImport.update({
+    id: '/super-admin-portal',
+    path: '/super-admin-portal',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -91,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/sermons': typeof AuthenticatedSermonsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
+  '/super-admin-portal': typeof AuthenticatedSuperAdminPortalRoute
   '/vault': typeof AuthenticatedVaultRoute
   '/sermons/$id': typeof AuthenticatedSermonsIdRoute
   '/sermons/new': typeof AuthenticatedSermonsNewRoute
@@ -103,6 +111,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/super-admin-portal': typeof AuthenticatedSuperAdminPortalRoute
   '/vault': typeof AuthenticatedVaultRoute
   '/sermons/$id': typeof AuthenticatedSermonsIdRoute
   '/sermons/new': typeof AuthenticatedSermonsNewRoute
@@ -118,6 +127,7 @@ export interface FileRoutesById {
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/sermons': typeof AuthenticatedSermonsRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/super-admin-portal': typeof AuthenticatedSuperAdminPortalRoute
   '/_authenticated/vault': typeof AuthenticatedVaultRoute
   '/_authenticated/sermons/$id': typeof AuthenticatedSermonsIdRoute
   '/_authenticated/sermons/new': typeof AuthenticatedSermonsNewRoute
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sermons'
     | '/settings'
+    | '/super-admin-portal'
     | '/vault'
     | '/sermons/$id'
     | '/sermons/new'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/onboarding'
     | '/settings'
+    | '/super-admin-portal'
     | '/vault'
     | '/sermons/$id'
     | '/sermons/new'
@@ -159,6 +171,7 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding'
     | '/_authenticated/sermons'
     | '/_authenticated/settings'
+    | '/_authenticated/super-admin-portal'
     | '/_authenticated/vault'
     | '/_authenticated/sermons/$id'
     | '/_authenticated/sermons/new'
@@ -199,6 +212,13 @@ declare module '@tanstack/react-router' {
       path: '/vault'
       fullPath: '/vault'
       preLoaderRoute: typeof AuthenticatedVaultRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/super-admin-portal': {
+      id: '/_authenticated/super-admin-portal'
+      path: '/super-admin-portal'
+      fullPath: '/super-admin-portal'
+      preLoaderRoute: typeof AuthenticatedSuperAdminPortalRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings': {
@@ -281,6 +301,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSermonsRoute: typeof AuthenticatedSermonsRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedSuperAdminPortalRoute: typeof AuthenticatedSuperAdminPortalRoute
   AuthenticatedVaultRoute: typeof AuthenticatedVaultRoute
 }
 
@@ -290,6 +311,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSermonsRoute: AuthenticatedSermonsRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedSuperAdminPortalRoute: AuthenticatedSuperAdminPortalRoute,
   AuthenticatedVaultRoute: AuthenticatedVaultRoute,
 }
 
