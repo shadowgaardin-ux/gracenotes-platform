@@ -77,7 +77,7 @@ function NewSermon() {
     await runTranscription(dataUrl);
   }
 
-  async function handleSave() {
+  async function saveOnly() {
     if (!profile?.organization_id) return toast.error("Join a church first.");
     if (!title.trim()) return toast.error("Give your sermon a title.");
     setSaving(true);
@@ -98,15 +98,7 @@ function NewSermon() {
         .select("id")
         .single();
       if (error) throw error;
-
-      if (transcript.trim().length > 40) {
-        toast.message("Generating AI notes…");
-        const { generateSermonContent } = await import("@/lib/ai.functions");
-        await generateSermonContent({
-          data: { sermonId: data.id, transcript, title: title.trim() },
-        }).catch(() => {});
-      }
-      toast.success("Sermon saved to your notebook.");
+      toast.success("Transcript saved.");
       navigate({ to: "/sermons/$id", params: { id: data.id } });
     } catch (e: any) {
       toast.error(e.message ?? "Save failed");
@@ -114,6 +106,45 @@ function NewSermon() {
       setSaving(false);
     }
   }
+
+  async function saveAndGenerate() {
+    if (!profile?.organization_id) return toast.error("Join a church first.");
+    if (!title.trim()) return toast.error("Give your sermon a title.");
+    if (transcript.trim().length < 40) return toast.error("Transcribe or paste more text before generating.");
+    setSaving(true);
+    try {
+      const sourceKind =
+        tab === "text" ? "text" : tab === "record" ? "recording" : tab === "upload" ? "upload" : "url";
+      const { data, error } = await supabase
+        .from("sermons")
+        .insert({
+          organization_id: profile.organization_id,
+          author_id: profile.id,
+          title: title.trim(),
+          transcript,
+          audio_url: audioUrl || null,
+          source_kind: sourceKind,
+          visibility: shared ? "shared" : "private",
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+
+      toast.message("Generating AI summary & topic tag…");
+      const { generateSermonContent } = await import("@/lib/ai.functions");
+      await generateSermonContent({
+        data: { sermonId: data.id, transcript, title: title.trim() },
+      });
+      toast.success("Sermon ready.");
+      navigate({ to: "/sermons/$id", params: { id: data.id } });
+    } catch (e: any) {
+      toast.error(e.message ?? "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const hasRawTranscript = transcript.trim().length > 0;
 
   return (
     <AppShell>
@@ -125,6 +156,7 @@ function NewSermon() {
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Personal notebook</p>
             <h1 className="font-display text-4xl">New sermon</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Step 1 — capture the raw transcript. Step 2 — generate the AI summary & topic.</p>
           </div>
         </div>
 
@@ -156,7 +188,7 @@ function NewSermon() {
                 placeholder="https://…/sermon.mp3"
                 className="w-full bg-background border border-input rounded-md px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
-              <p className="text-xs text-muted-foreground">We'll attach the link. Paste a transcript below to unlock AI notes.</p>
+              <p className="text-xs text-muted-foreground">We'll attach the link. Paste a transcript below to unlock the AI step.</p>
             </div>
           )}
         </div>
@@ -164,7 +196,7 @@ function NewSermon() {
         <div className="mt-6">
           <div className="flex items-center justify-between">
             <label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-              Transcript {tab === "text" ? "" : "(auto-generated)"}
+              Step 1 · Raw transcript {tab === "text" ? "" : "(auto)"}
             </label>
             {transcribing && (
               <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -183,17 +215,23 @@ function NewSermon() {
           <textarea
             value={transcript}
             onChange={(e) => setTranscript(e.target.value)}
-            rows={tab === "text" ? 14 : 8}
+            rows={tab === "text" ? 14 : 10}
             placeholder={
               tab === "text"
                 ? "Paste the sermon transcript or jot key points."
-                : "Your transcript will appear here after recording or uploading. You can edit it freely."
+                : "Your raw transcript will appear here. Review and edit — no AI has run yet."
             }
-            className="mt-1.5 w-full bg-background border border-input rounded-md px-3 py-2.5 text-sm leading-relaxed font-mono outline-none focus:ring-2 focus:ring-ring"
+            style={{ color: hasRawTranscript ? "#dc2626" : undefined }}
+            className="mt-1.5 w-full bg-background border border-input rounded-md px-3 py-2.5 text-sm leading-relaxed font-mono outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
           />
+          {hasRawTranscript && (
+            <p className="mt-1.5 text-[11px] text-[#dc2626]/80">
+              Raw uninterpreted text. Tap "Generate AI Summary" below to produce the pastoral summary, key bullets & topic tag.
+            </p>
+          )}
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-6 flex flex-wrap items-center gap-3">
           <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
@@ -208,14 +246,32 @@ function NewSermon() {
               </span>
             </span>
           </label>
-          <button
-            disabled={saving || transcribing || !title.trim()}
-            onClick={handleSave}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-          >
-            <Sparkles className="h-4 w-4" />
-            {saving ? "Saving…" : "Save sermon"}
-          </button>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-border bg-card p-5">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Step 2 · AI processing</p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground max-w-md">
+              The AI will summarize the message, pull key action steps, cite scriptures, and auto-assign a Primary Topic Tag.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                disabled={saving || transcribing || !title.trim() || !hasRawTranscript}
+                onClick={saveOnly}
+                className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2.5 text-sm font-medium hover:bg-accent disabled:opacity-50"
+              >
+                Save transcript only
+              </button>
+              <button
+                disabled={saving || transcribing || !title.trim() || !hasRawTranscript}
+                onClick={saveAndGenerate}
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-sm"
+              >
+                <Sparkles className="h-4 w-4" />
+                {saving ? "Working…" : "Generate AI Summary & Save"}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </AppShell>
