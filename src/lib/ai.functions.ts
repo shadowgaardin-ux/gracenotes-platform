@@ -51,6 +51,7 @@ export const generateSermonContent = createServerFn({ method: "POST" })
     const prompt = `You are a study companion analyzing a sermon titled "${data.title}". Produce JSON with EXACTLY these keys — every list item must be a single tight bullet (one sentence, no markdown bullets/dashes):
 
 {
+  "primary_topic": "ONE short topic tag capturing the main theme (e.g. Faith, Forgiveness, Hope, Prayer, Grace, Suffering, Identity, Marriage, Stewardship). Title-case, single word or short phrase.",
   "summary": "2-3 sentence pastoral summary",
   "core_theology": ["3-6 bullets naming the central theological claims"],
   "action_steps": ["3-6 bullets of concrete, do-this-week applications"],
@@ -116,11 +117,16 @@ Return ONLY valid JSON. Transcript:\n\n${data.transcript.slice(0, 12000)}`;
       );
     }
 
-    if (parsed.summary) {
-      await supabase.from("sermons").update({ summary: parsed.summary }).eq("id", data.sermonId);
+    const sermonPatch: Record<string, unknown> = {};
+    if (parsed.summary) sermonPatch.summary = parsed.summary;
+    if (typeof parsed.primary_topic === "string" && parsed.primary_topic.trim()) {
+      sermonPatch.primary_topic = parsed.primary_topic.trim().slice(0, 60);
+    }
+    if (Object.keys(sermonPatch).length) {
+      await supabase.from("sermons").update(sermonPatch as never).eq("id", data.sermonId);
     }
 
-    return { ok: true };
+    return { ok: true, primary_topic: (sermonPatch.primary_topic as string) ?? null };
   });
 
 const ChatInput = z.object({
