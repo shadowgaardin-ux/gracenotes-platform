@@ -117,11 +117,16 @@ Return ONLY valid JSON. Transcript:\n\n${data.transcript.slice(0, 12000)}`;
       );
     }
 
-    if (parsed.summary) {
-      await supabase.from("sermons").update({ summary: parsed.summary }).eq("id", data.sermonId);
+    const sermonPatch: Record<string, unknown> = {};
+    if (parsed.summary) sermonPatch.summary = parsed.summary;
+    if (typeof parsed.primary_topic === "string" && parsed.primary_topic.trim()) {
+      sermonPatch.primary_topic = parsed.primary_topic.trim().slice(0, 60);
+    }
+    if (Object.keys(sermonPatch).length) {
+      await supabase.from("sermons").update(sermonPatch as never).eq("id", data.sermonId);
     }
 
-    return { ok: true };
+    return { ok: true, primary_topic: (sermonPatch.primary_topic as string) ?? null };
   });
 
 const ChatInput = z.object({
