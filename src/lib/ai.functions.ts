@@ -50,6 +50,8 @@ export const generateSermonContent = createServerFn({ method: "POST" })
 
     const prompt = `You are a study companion analyzing a sermon titled "${data.title}". Produce JSON with EXACTLY these keys — every list item must be a single tight bullet (one sentence, no markdown bullets/dashes):
 
+  "primary_topic": "ONE short topic tag capturing the main theme (e.g. Faith, Forgiveness, Hope, Prayer, Grace, Suffering, Identity, Marriage, Stewardship). Title-case, single word or short phrase.",
+
 {
   "summary": "2-3 sentence pastoral summary",
   "core_theology": ["3-6 bullets naming the central theological claims"],
