@@ -326,6 +326,7 @@ export type Database = {
           id: string
           is_favorite: boolean
           organization_id: string
+          primary_topic: string | null
           scripture_focus: string | null
           series: string | null
           source_kind: string
@@ -344,6 +345,7 @@ export type Database = {
           id?: string
           is_favorite?: boolean
           organization_id: string
+          primary_topic?: string | null
           scripture_focus?: string | null
           series?: string | null
           source_kind?: string
@@ -362,6 +364,7 @@ export type Database = {
           id?: string
           is_favorite?: boolean
           organization_id?: string
+          primary_topic?: string | null
           scripture_focus?: string | null
           series?: string | null
           source_kind?: string
