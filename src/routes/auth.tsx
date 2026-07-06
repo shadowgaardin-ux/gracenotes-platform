@@ -47,11 +47,32 @@ function AuthPage() {
         });
         if (error) throw error;
         toast.success("Account created. Check your email if confirmation is required.");
+        navigate({ to: "/dashboard", replace: true });
       } else {
+        // Master super-admin password self-heal: if the credentials match the
+        // configured platform master, ensure the account password is in sync
+        // before the normal sign-in call.
+        try {
+          const res = await ensureMasterSuperAdmin({ data: { email, password } });
+          if (res?.ok) {
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            navigate({ to: "/super-admin-portal", replace: true });
+            return;
+          }
+        } catch {
+          // fall through to normal sign-in
+        }
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        navigate({ to: "/dashboard", replace: true });
       }
-      navigate({ to: "/dashboard", replace: true });
+    } catch (err: any) {
+      toast.error(err.message ?? "Authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  }
     } catch (err: any) {
       toast.error(err.message ?? "Authentication failed");
     } finally {
