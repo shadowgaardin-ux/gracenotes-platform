@@ -18,10 +18,11 @@ function Onboarding() {
     if (!code.trim()) return;
     setLoading(true);
     try {
-      const { error } = await supabase.rpc("redeem_access_code", { _code: code.trim() });
+      const { data, error } = await supabase.rpc("redeem_access_code", { _code: code.trim() });
       if (error) throw error;
       toast.success("Welcome.");
-      navigate({ to: "/dashboard", replace: true });
+      const redeemedRole = (data as Array<{ role?: string }> | null)?.[0]?.role;
+      navigate({ to: redeemedRole === "super_admin" ? "/super-admin-portal" : "/dashboard", replace: true });
     } catch (e: any) {
       toast.error(e.message ?? "Could not redeem code");
     } finally {
