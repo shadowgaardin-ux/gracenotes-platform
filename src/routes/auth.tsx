@@ -5,6 +5,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { ensureMasterSuperAdmin } from "@/lib/master-auth.functions";
 
 const search = z.object({ mode: z.enum(["signin", "signup"]).optional() });
 
