@@ -46,9 +46,12 @@ function Onboarding() {
           </div>
           <input
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onChange={(e) => setCode(e.target.value)}
             placeholder="GN-XXXXXXXX"
-            className="mt-3 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm font-mono tracking-wider focus:ring-2 focus:ring-ring outline-none"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            className="mt-3 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm font-mono tracking-wider focus:ring-2 focus:ring-ring outline-none normal-case"
           />
           <button
             disabled={loading || !code}
