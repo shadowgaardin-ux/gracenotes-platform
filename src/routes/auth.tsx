@@ -73,12 +73,6 @@ function AuthPage() {
       setLoading(false);
     }
   }
-    } catch (err: any) {
-      toast.error(err.message ?? "Authentication failed");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleGoogle() {
     setLoading(true);
